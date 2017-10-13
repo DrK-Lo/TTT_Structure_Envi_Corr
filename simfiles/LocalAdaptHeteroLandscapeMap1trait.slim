@@ -5,7 +5,7 @@
 // changed mutation stack policy to "l", so that when a new mutation occurs at that position it replaces the initial mutation, rather than stacking on top of it. 
 
 initialize() {
-	//setSeed(1502104253870);
+	defineConstant("my_seed", getSeed()); 
 
 	defineConstant("sigma_C", 0.07); // smaller is weaker competition
 		// weaker competition allows more similar phenotypes to coexist
@@ -27,7 +27,7 @@ initialize() {
 	defineConstant("sigma_M", 0.5); // larger is less assortative mating
 	defineConstant("N", 1000);
 	defineConstant("r", 1e-05);
-	path = "~/Dropbox/katie/SSMPG2017/SSMPG2017/";
+	defineConstant("path", "/Users/katie/Desktop/TestTheTests/TTT_Structure_Envi_Corr/results/");
 	
 	initializeSLiMOptions(dimensionality="xyz");	initializeMutationRate(1e-6);	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral	initializeMutationType("m2", 0.5, "n", 0.0, 0.1);   // QTL
 		// larger values if want fewer large effect mutations to arise, compare dnorm(0.0:2.0, 0, 0.4)
@@ -109,50 +109,23 @@ modifyChild() {
 	
 
 
-	if (sim.generation % 50 == 0){ 
+	if (sim.generation % 200 == 0){ 
 		// get positions of all m2 mutations and store in Q
 		g = sim.subpopulations.genomes;
 		// get the unique mutations in the sample, sorted by position		m = sortBy(unique(g.mutationsOfType(m2)), "position"); 
 		mut = sim.mutationsOfType(m2);
-		// print the number of segregating sites
-		cat(sim.generation + "\n");		cat("\n\nsegsites: " + size(m) + "\n");
-		//cat(sim.mutationFrequencies(p1, sim.mutationsOfType(m2)));
-		//print("\n");
-		//print(mut.mutationType.dominanceCoeff);
-		//print("\n");
-		//print(mut.selectionCoeff);
-		cat("mean phenotype: " + mean(phenotype) + " sd(phen): " + sd(phenotype) + "\n");
-		
+
 		env=c();
 		for (ind in inds){
   			env = c(env, p1.spatialMapValue("map1", ind.spatialPosition[0:1]));
-  		}	
-  			
-  		if (sim.generation > 2000){
-  				pervar = rep(0.0, size(mut));
-  				for (i in 0:(size(mut)-1)){
-  					effect = mut.selectionCoeff[i];
-  					freq = sim.mutationFrequencies(NULL, mut)[i];
-  					pervar[i] = effect^2*freq*(1-freq)*100;
-  					//cat( effect+ "\t\t"  +  freq + "\t\t" + pervar[i] + "\n");
-  				}
-  				cat("----------------------\n");
-  				cat("----------------------\n");
-  				for (i in 0:(size(mut)-1)){
-  					effect = mut.selectionCoeff[i];
-  					freq = sim.mutationFrequencies(NULL, mut)[i];
-  					pervar_i = round(pervar[i]/sum(pervar)*100);
-  					if(pervar_i>0){
-	  					cat( effect+ "\t\t"  +  freq + "\t\t" +  pervar_i+ "\n");
-	  				}
-  				}
-  			}
-  		
-  		cat("----------------------\n");
-  		cat("----------------------\n");
-		cat("corr:" + sum((env- mean(env))/sd(env)*(inds.z-mean(inds.z))/sd(inds.z))/(size(inds.z)-1)+"\n");		//for (q in Q)		//{		//	isPlus = asLogical(rbinom(n, 1, 0.5)); g[isPlus].addNewMutation(m2, 1.0, q); 
-		//	g[!isPlus].addNewMutation(m2, -1.0, q);   	//}
+  		}
+  	
+		corr = sum((env- mean(env))/sd(env)*(inds.z-mean(inds.z))/sd(inds.z))/(size(inds.z)-1);		out = paste(c(sim.generation, size(m), mean(phenotype),  sd(phenotype), corr));
+		writeFile(paste(c(path, my_seed, "_", sigma_K, "_outputPhenEnv.txt"), sep=""), out, append=T);
+
    }
+
+   
 }
 
 // 1001 late() {
@@ -173,7 +146,7 @@ fitness(m3) {      // make QTLs intrinsically neutral	return 1.0;}fitness(NUL
 	optimum2 = subpop.spatialMapValue("map2", location);
 	// w = exp(-0.5*t(phen-opt)%*%omega%*%(phen-opt))
 	// phen is vector of each phenotype
-	// opt is vector of each optimum, for now assume variance is sigma_k with no covariance	if (sim.generation < 2000){
+	// opt is vector of each optimum, for now assume variance is sigma_k with no covariance	if (sim.generation < 4000){
 		return 1.0 + dnorm(optimum2 - individual.z, mean=0.0, sd=3);
 			// to create genetic variance to occupy all envi niches, it's important to confirm
 			// that the fitness at the extreme values of the environment (~-3.6 to +3.6) is not 
@@ -212,50 +185,13 @@ mateChoice() {
 }
 
 ////////////////////////////////////////
-////////////////////////////////////////4000 late() {
-path = "~/Desktop/Kay_Sims";
-samp_ind = c();
+////////////////////////////////////////6000 late() {
 pop_id = c();
 env_ind = c();
 
-sample_x = rep(c(0.2, 0.4, 0.6, 0.8), 5);
-sample_y = c(rep(0.2, 5), rep(0.4, 5), rep(0.6, 5), rep(0.8, 5));
-
-span = 0.07; // span of sampling
-
-// loop through sampling locations
-for (k in 0:(size(sample_x)-1)){
-	pop = rep(F, size(p1.individuals));
-	i=0;
-
-	// loop through individuals and find the "Populations"
-	for (ind in p1.individuals){
-  		pop[i] = (ind.spatialPosition[0] < (sample_x[k] + span)) & (ind.spatialPosition[0] > (sample_x[k] - span)) & (ind.spatialPosition[1] < (sample_y[k] + span)) & (ind.spatialPosition[1] > (sample_y[k] - span));
-  		i=i+1;
-  	} // end loop through individuals
-  	//print(pop);
-  	  	
-  	popinds = c(p1.individuals[pop]);
-  	//print(size(popinds));
-  	if(size(popinds)>20){popinds = popinds[0:20];}
-  	//print(size(popinds));
-  	
-  	i=0;
-  	// loop through individuals in the pop and get their pop ID and environment
-  	for (ind in popinds){
-  		pop_id = c(pop_id, k+1);
-  		env_ind = c(env_ind, p1.spatialMapValue("map1", ind.spatialPosition[0:1]));
-  		i=i+1;
-  	} // end loop through individuals
-  	
-  	// append individuals to sample
-  	samp_ind = c(samp_ind, popinds);
-
-} // end loop through sampling locations
-
-
+////////////////////////////////////////////
 // loop through all sampled individuals and output their stats	
-
+////////////////////////////////////////////
 inds = sim.subpopulations.individuals;
 env=c();
 		for (ind in inds){
@@ -264,42 +200,32 @@ env=c();
   	
 cor = sum((env- mean(env))/sd(env)*(inds.z-mean(inds.z))/sd(inds.z))/(size(inds.z)-1);
 
-env_samp=c();
-		for (ind in samp_ind){
-  			env_samp = c(env_samp, p1.spatialMapValue("map1", ind.spatialPosition[0:1]));
-  		}
-  	
-cor_samp = sum((env_samp- mean(env_samp))/sd(env_samp)*(samp_ind.z-mean(samp_ind.z))/sd(samp_ind.z))/(size(samp_ind.z)-1);
-
 
 // output simulation stats
 output_sim = "seed "+ getSeed()+ "\n"+
-	"sample_size "+ size(samp_ind)+ "\n"+
-	"num_pops "+ size(sample_x)+ "\n"+
+	//"sample_size "+ size(samp_ind)+ "\n"+
+	//"num_pops "+ size(sample_x)+ "\n"+
 	"corr_phen_env_all " + cor + "\n" + 
-	"corr_phen_env_samp " + cor_samp + "\n" +
+	//"corr_phen_env_samp " + cor_samp + "\n" +
 	"recomb_rates " + paste(sim.chromosome.recombinationRates, sep=" ") + "\n" +
 	"recomb_rates_end " + paste(sim.chromosome.recombinationEndPositions, sep= " ") + "\n" +
 	"mutation_rate " + sim.chromosome.mutationRate + "\n" +
 	"N " + p1.individualCount + "\n"  
 	;
-path = "~/Dropbox/katie/SSMPG2017/SSMPG2017/";
-writeFile(paste(c(path, "outputSim.txt"), sep=""), output_sim);
 
-i=0;
-output_ind = "id " + "x "+ "y " + "phenotype1 " + "pop " + "envi " + "\n";
-for (ind in samp_ind){
-   output_ind = output_ind + ind.index +" " + ind.spatialPosition[0] + " " + ind.spatialPosition[1] + " " + ind.spatialPosition[2] + " " + pop_id[i] + " " + env_ind[i] + "\n";
-  	i= i+1;
-}
-writeFile(paste(c(path, "outputInd.txt"), sep=""), output_ind);
-  	
+writeFile(paste(c(path, my_seed,"_", sigma_K, "_outputSim.txt"), sep=""), output_sim);
 
-
-samp_ind.genomes.outputVCF(paste(c(path, "VCFsim1.vcf"), sep=""));
+//i=0;
+//output_ind = "id " + "x "+ "y " + "phenotype1 " + "pop " + "envi " + "\n";
+//for (ind in samp_ind){
+//   output_ind = output_ind + ind.index +" " + ind.spatialPosition[0] + " " + ind.spatialPosition[1] + " " + ind.spatialPosition[2] + " " + pop_id[i] + " " + env_ind[i] + "\n";
+ // 	i= i+1;
+//}
+//writeFile(paste(c(path, "outputInd.txt"), sep=""), output_ind);	
+//samp_ind.genomes.outputVCF(paste(c(path, "VCFsim1.vcf"), sep=""));
 
 //output all
-p1.individuals.genomes.outputVCF(paste(c(path, "VCFallsim1.vcf"), sep=""));
+p1.individuals.genomes.outputVCF(paste(c(path,my_seed, "_", sigma_K, "_VCFallsim1.vcf"), sep=""));
 
 phenotype = inds.sumOfMutationsOfType(m2);
 		
@@ -309,7 +235,7 @@ for (ind in p1.individuals){
    output_ind = output_ind + ind.index +" " + ind.spatialPosition[0] + " " + ind.spatialPosition[1] + " " +    ind.spatialPosition[2] + " " +  p1.spatialMapValue("map1", ind.spatialPosition[0:1]) + " " + phenotype[i] +    "\n";
   	i= i+1;
 }
-writeFile(paste(c(path, "outputIndAll.txt"), sep=""), output_ind);
+writeFile(paste(c(path, my_seed, "_", sigma_K, "_outputIndAll.txt"), sep=""), output_ind);
 
 // output mutations
 g = sim.subpopulations.genomes;
@@ -321,9 +247,18 @@ out_m = "position " + "selCoef " + "originGen " + "type " + "freq" + "\n";
 for(i in 0:(size(m)-1)){
 	out_m = out_m + m.position[i] +" "+ m.selectionCoeff[i]+" " + m.originGeneration[i]+" " + "m2 " + m_freqs[i] + "\n";
 }
-writeFile(paste(c(path, "outputMuts.txt"), sep=""), out_m);
+
+m4_muts = sortBy(unique(c(g.mutationsOfType(m4))), "position"); 
+if (size(m4_muts)>0){
+	m4_freqs = sim.mutationFrequencies(p1, m4_muts);
+	for(i in 0:(size(m4_muts)-1)){
+		out_m = out_m + m4_muts.position[i] +" "+ m4_muts.selectionCoeff[i]+" " + m4_muts.originGeneration[i]+" " + "m4 " + m4_freqs[i] + "\n";
+	}
+}
+writeFile(paste(c(path, my_seed,"_", sigma_K ,"_outputMuts.txt"), sep=""), out_m);
 }
 
-4001 late() {
+
+6001 late() {
 	sim.simulationFinished();
 }
