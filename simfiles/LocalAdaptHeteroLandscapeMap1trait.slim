@@ -8,9 +8,11 @@ initialize() {
 	defineConstant("my_seed", getSeed()); 
 
 	defineConstant("sigma_C", 0.07); // smaller is weaker competition
+	// BF: Standard deviation of competition function for total interaction strength
 		// weaker competition allows more similar phenotypes to coexist
 		// weaker comp decreases local adaptation if all phenotypes in same envi
 	defineConstant("sigma_K", 0.01); 
+	// BF: Stength of stabilizing selection after 4Ne generations
 			// smaller is stronger stabilizing selection, 
 			//0.005, 0.01, 0.05, 0.2, 0.5, 1.0, 2.0, and 3.0
 					// (0.005 --> no local adaptation in 2 reps
@@ -26,15 +28,24 @@ initialize() {
 					// (2.0 --> 0.2 corr phen envi)
 			// larger is weaker (wider) stabilizing selection
 	defineConstant("sigma_M", 0.5); // larger is less assortative mating
+	// BF: Standard deviation of mating function for total interaction stength
 	defineConstant("N", 1000);
+	// BF: Population size
 	defineConstant("r", 1e-05);
-	defineConstant("path", "/Users/katie/Desktop/TestTheTests/TTT_Structure_Envi_Corr/results/");
+	// BF: Base recombination rate
+	defineConstant("path", "/Users/brettford/Desktop/Northeastern/SLiM/TTT_Structure_Envi_Corr/results/");
 	
-	initializeSLiMOptions(dimensionality="xyz");	initializeMutationRate(1e-6);	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral	initializeMutationType("m2", 0.5, "n", 0.0, 0.1);   // QTL
+	initializeSLiMOptions(dimensionality="xyz");
+	// BF: To model spaital variation in selectin, here z is phenotype	initializeMutationRate(1e-6);
+	// BF: overall mutation rate	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral	initializeMutationType("m2", 0.5, "n", 0.0, 0.1);   // QTL
+	// BF: "n" in second mutation type is a Distribution type
+	// where ellipsis should supply a mean selection coefficient 
+	// and a sigma (std dev)
 		// larger values if want fewer large effect mutations to arise, compare dnorm(0.0:2.0, 0, 0.4)
 		// smaller values for more mutations of smaller effect	
-	initializeGenomicElementType("g0", c(m1), c(1));	initializeGenomicElementType("g1", c(m1, m2), c(0.97, 0.03)); //QTL
-	
+	initializeGenomicElementType("g0", c(m1), c(1));
+	// BF: section of the genome with neutral mutations	initializeGenomicElementType("g1", c(m1, m2), c(0.97, 0.03)); //QTL
+	// BF: section of the genome with neutral mut (97%) and QTL (3%)
 	//initializeGenomicElementType("g2", c(m1, m3), c(0.8, 0.2));
 	
 	// start chromosome 1	initializeGenomicElement(g1, 0, 50000); // QTL mutations
@@ -62,7 +73,9 @@ initialize() {
 	// second chromosome: 30000 to 50000 contains background selection, with low recom region from 39908 to 42834
 	// third chromosome: 50000 to 80000 contains gene 2 locally adapting
 	// 4th chromosome: 80000 to 99999 neutral
-	// 5th chromosome: 100000 to 120000 positive sweep		initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=sigma_C*5);     // competition	i1.setInteractionFunction("n", 1.0, sigma_C);
+	// 5th chromosome: 100000 to 120000 positive sweep	
+	// BF: setting up interaction for spatial competition
+	// and assortative mating	initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=sigma_C*5);     // competition	i1.setInteractionFunction("n", 1.0, sigma_C);
 		// if they are close in space and have similar phenotype, that is max interaction strength
 	initializeInteractionType(2, "xyz", reciprocal=T);     // mate choice	i2.setInteractionFunction("n", 1.0, sigma_M);
 		// 
@@ -70,12 +83,15 @@ initialize() {
 	
 	
 	p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
-	
+	//BF: The spatial boundaries for subpopulation p1
+	//BF: spatial boundaries of [0.0, 1.0] for x, y, and z
 	
 	/// map 1 is the adaptive map (after 1000 gen)
 	defineConstant("mapValues", rnorm(25, 0, 0.5)+ rep(c(-1.0,0.0,1.0,0.0,-1.0), 5));
 	p1.defineSpatialMap("map1", "xy", c(5, 5), mapValues, interpolate=T,
 		valueRange=c(-1.8, 1.8), colors=c("red", "yellow"));
+		//BF: 5 by 5 grid
+		//BF: valueRange and colors specify map values into colors
 	
 	// map 2 is the static map (1st 1000 gen)
 	defineConstant("map2Values", rep(0.0, 25));
@@ -85,6 +101,8 @@ initialize() {
 	for (ind in p1.individuals)
 		ind.setSpatialPosition(p1.pointUniform());
 	p1.individuals.z = 0.0;
+	// BF: Set random spatial positions for all of the inds (parents)
+	// and zero out their phenotypes
 }
 
 modifyChild() {
@@ -95,6 +113,9 @@ modifyChild() {
 	child.setSpatialPosition(pos);
 	
 	return T;
+	//BF: reprising boundary conditions- if point is not inside
+	// bounds, code loops back to generate a new point, 
+	// until within bounds
 }
 
 
@@ -107,11 +128,13 @@ modifyChild() {
 	//inds.tagF = phenotype2;
 	
 	// color individuals according to phenotype	inds.color = p1.spatialMapColor("map1", phenotype);		// evaluate interactions	i1.evaluate();	i2.evaluate();
-	
+	// BF:Takes a snapshot of the model's spatial state at that moment in time
+	// and calculates all interactions based upon that snapshot
 
 
 	if (sim.generation % 200 == 0){ 
 		// get positions of all m2 mutations and store in Q
+		//BF: every 200 generations, evenly divisible
 		g = sim.subpopulations.genomes;
 		// get the unique mutations in the sample, sorted by position		m = sortBy(unique(g.mutationsOfType(m2)), "position"); 
 		mut = sim.mutationsOfType(m2);
@@ -119,6 +142,8 @@ modifyChild() {
 		env=c();
 		for (ind in inds){
   			env = c(env, p1.spatialMapValue("map1", ind.spatialPosition[0:1]));
+  			// BF: provides value of environment at each spatial
+  			// coordinate of each individual?
   		}
   	
 		corr = sum((env- mean(env))/sd(env)*(inds.z-mean(inds.z))/sd(inds.z))/(size(inds.z)-1);		out = paste(c(sim.generation, size(m), mean(phenotype),  sd(phenotype), corr));
@@ -236,6 +261,7 @@ for (ind in p1.individuals){
    output_ind = output_ind + ind.index +" " + ind.spatialPosition[0] + " " + ind.spatialPosition[1] + " " +    ind.spatialPosition[2] + " " +  p1.spatialMapValue("map1", ind.spatialPosition[0:1]) + " " + phenotype[i] +    "\n";
   	i= i+1;
 }
+// BF: What is phenotype 1 versus phenotype 2?
 writeFile(paste(c(path, my_seed, "_", sigma_K, "_outputIndAll.txt"), sep=""), output_ind);
 
 // output mutations
