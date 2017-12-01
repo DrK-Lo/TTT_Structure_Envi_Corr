@@ -140,38 +140,38 @@ modifyChild() {
 	// BF: wrote new line to define phenotype2 based on two mutation, two phenotype model
 		// BEN: FASTER TO USE : Sumofmutationsoftype
 	//phenotype2 = apply(inds,	//	"sum(applyValue.genomes.mutationsOfType(m3).selectionCoeff);");	inds.z = phenotype;
-	inds.tagF = phenotype2;
+	inds.tagF = 0.0 ;//phenotype2;
 	//BF: uncommented inds.tagF for phenotype 2
 	// color individuals according to phenotype	inds.color = p1.spatialMapColor("map1", phenotype);		// evaluate interactions	i1.evaluate();	i2.evaluate();
 	// BF:Takes a snapshot of the model's spatial state at that moment in time
 	// and calculates all interactions based upon that snapshot
 
 
-	if (sim.generation % 200 == 0){ 
+//	if (sim.generation % 200 == 0){ 
 		// get positions of all m2 mutations and store in Q
 		// BF: also get positions of all m3 mutations?
 		//BF: every 200 generations, evenly divisible
-		g = sim.subpopulations.genomes;
-		// get the unique mutations in the sample, sorted by position		m = sortBy(unique(g.mutationsOfType(m2)), "position"); 
-		m_2 = sortBy(unique(g.mutationsOfType(m3)), "position"); 
-		mut = sim.mutationsOfType(m2);
-		mut_2 = sim.mutationsOfType(m3);
+//		g = sim.subpopulations.genomes;
+		// get the unique mutations in the sample, sorted by position//		m = sortBy(unique(g.mutationsOfType(m2)), "position"); 
+//		m_2 = sortBy(unique(g.mutationsOfType(m3)), "position"); 
+//		mut = sim.mutationsOfType(m2);
+//		mut_2 = sim.mutationsOfType(m3);
 		// BF: added lines to find and store positions for m3 mutations
 		
-		env=c();
-		for (ind in inds){
-  			env = c(env, p1.spatialMapValue("map1", ind.spatialPosition[0:1]));
+//		env=c();
+//		for (ind in inds){
+//  			env = c(env, p1.spatialMapValue("map1", ind.spatialPosition[0:1]));
   			// BF: provides value of environment at each spatial
   			// coordinate of each individual?
-  		}
+//  		}
   	
-		corr = sum((env- mean(env))/sd(env)*(inds.z-mean(inds.z))/sd(inds.z))/(size(inds.z)-1);
-		corr_2 = sum((env- mean(env))/sd(env)*(inds.tagF-mean(inds.tagF))/sd(inds.tagF))/(size(inds.tagF)-1);
-		// BF: wrote an additional line to calculate correlation between environment and phenotype2		out = paste(c(sim.generation, size(m), mean(phenotype), sd(phenotype), corr, size(m_2), mean(phenotype2), sd(phenotype2), corr_2));
+//		corr = sum((env- mean(env))/sd(env)*(inds.z-mean(inds.z))/sd(inds.z))/(size(inds.z)-1);
+//		corr_2 = sum((env- mean(env))/sd(env)*(inds.tagF-mean(inds.tagF))/sd(inds.tagF))/(size(inds.tagF)-1);
+		// BF: wrote an additional line to calculate correlation between environment and phenotype2//		out = paste(c(sim.generation, size(m), mean(phenotype), sd(phenotype), corr, size(m_2), mean(phenotype2), sd(phenotype2), corr_2));
 		// BF: added columns for phenotype2 data
-		writeFile(paste(c(path, my_seed, "_", sigma_K, "_outputPhenEnv.txt"), sep=""), out, append=T);
+//		writeFile(paste(c(path, my_seed, "_", sigma_K, "_outputPhenEnv.txt"), sep=""), out, append=T);
 
-   }
+//   }
 
    
 }
@@ -194,8 +194,8 @@ fitness(m3) {      // make QTLs intrinsically neutral	return 1.0;}fitness(NUL
 	optimum2 = subpop.spatialMapValue("map2", location);
 	// w = exp(-0.5*t(phen-opt)%*%omega%*%(phen-opt))
 	// phen is vector of each phenotype
-	// opt is vector of each optimum, for now assume variance is sigma_k with no covariance	//if (sim.generation < 4000){
-	//	return 1.0 + dnorm(optimum2 - individual.z, mean=0.0, sd=3);
+	// opt is vector of each optimum, for now assume variance is sigma_k with no covariance	if (sim.generation < 400){
+		return 1.0 + dnorm(optimum2 - individual.z, mean=0.0, sd=3);
 			// to create genetic variance to occupy all envi niches, it's important to confirm
 			// that the fitness at the extreme values of the environment (~-3.6 to +3.6) is not 
 			// much lower than the fitness at the average
@@ -203,11 +203,12 @@ fitness(m3) {      // make QTLs intrinsically neutral	return 1.0;}fitness(NUL
 			// the down-side is that the phenotype drifts some more
 			//sort(rnorm(25, 0, 0.5)+ rep(c(-1.0,0.0,1.0,0.0,-1.0),5)) // landscape
 			// dnorm(0.0:5.0, 0, 1.5)/dnorm(0.0,0,1.5)
-	//}
-	//else {
+	}
+	else {
 	//	return 1.0 + dnorm(optimum1 - individual.z, mean=0.0, sd=sigma_K);
 	//}
-	return exp(-0.5*((individual.z-optimum1)^2*sigma_K + (individual.tagF-optimum2)^2*sigma_K));
+	return exp(-0.5*((individual.z-optimum1)^2*sigma_K + (individual.tagF-optimum1)^2*sigma_K));
+	}
 	//*** BF: commented out if statement, uncommented line of code to calculate 
 	//fitness for multiple traits}
 fitness(NULL) {    // trying logistic growth
@@ -235,7 +236,7 @@ mateChoice() {
 }
 
 ////////////////////////////////////////
-////////////////////////////////////////6000 late() {
+////////////////////////////////////////600 late() {
 pop_id = c();
 env_ind = c();
 

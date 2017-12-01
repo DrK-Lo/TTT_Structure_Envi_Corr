@@ -2,3 +2,7 @@ temp/*
 */temp/*
 .DS_Store
 *.vcf
+results/*.txt
+results/2env_latlong/
+results/2env_same/
+results/switched_env_correlated_to/
